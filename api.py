@@ -105,7 +105,9 @@ async def generate_lip_synced(message):
     print("audio.audio_duration", str(audio.audio_duration.total_seconds()))
     with tracer.start_as_current_span("process-tts-merge-video-audio"):
         sq_len = math.ceil(audio.audio_duration.total_seconds() / 0.5)
-        sq_min = int(redis_client.get("index")) + int(0.5 * 2)
+        sq_min = int(
+            redis_client.get("index") if redis_client.get("index") else 0
+        ) + int(0.5 * 2)
         sq_max = sq_min + sq_len
         print("sq_len", str(sq_len))
         selected_edited = sorted(videos_indexes[sq_min:sq_max])

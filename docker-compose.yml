@@ -11,6 +11,7 @@ services:
     command: /opt/app/start.sh
     ports:
       - "8086:80"
+      - "8089:80"
     depends_on:
       - redis
     volumes:
