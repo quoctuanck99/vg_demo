@@ -4,17 +4,44 @@ services:
   redis:
     image: redis
     ports:
-      - "6377:6379"
+      - "6379:6379"
+    networks:
+      - mynetwork
 
+  minio:
+    image: bitnami/minio:latest
+    container_name: minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    networks:
+      - mynetwork
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: jaeger
+    restart: always
+    environment:
+      - COLLECTOR_ZIPKIN_HOST_PORT=:9411
+    ports:
+      - "16686:16686"
+      - "4317:4317"
+      - "4318:4318"
+      - "9411:9411"
+    networks:
+      - mynetwork
   api:
     build: .
     command: /opt/app/start.sh
     ports:
-      - "8086:80"
-      - "8089:80"
+      - "8080:80"
     depends_on:
       - redis
+      - minio
+      - jaeger
     volumes:
       - .docker.env:/opt/app/.docker.env
     env_file:
       - .docker.env
+networks:
+  mynetwork:
+    driver: bridge
