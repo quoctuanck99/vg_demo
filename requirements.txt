@@ -1,0 +1,14 @@
+fastapi==0.110.1
+redis==5.0.3
+opentelemetry-api
+opentelemetry-sdk
+opentelemetry-instrumentation-fastapi
+opentelemetry-exporter-otlp
+uvicorn[standard]
+httpx
+singleton-decorator
+python-multipart
+azure-cognitiveservices-speech
+minio
+python-dotenv
+pydantic-settings

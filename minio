@@ -1,0 +1,56 @@
+import azure.cognitiveservices.speech as speechsdk
+from minio import Minio
+
+class SpeechService:
+    def __init__(self):
+        self.speech_config = self._get_speech_config()
+        self.speech_synthesizer = speechsdk.SpeechSynthesizer(speech_config=self.speech_config)
+
+    def _get_speech_config(self):
+        speech_config = speechsdk.SpeechConfig(
+            subscription="d3d3e29767424183ad5f67dd33a946bb",
+            region="japaneast"
+        )
+        speech_config.speech_synthesis_voice_name = "ReimiOsawaJan2NormalSexyENNeural"
+        speech_config.endpoint_id = "1734af87-adf9-4bc0-ae0a-a31e3bdd3e7e"
+        # use low bitrate to reduce the size of the audio file
+        speech_config.set_speech_synthesis_output_format(
+                speechsdk.SpeechSynthesisOutputFormat.Audio24Khz160KBitRateMonoMp3
+            )
+        return speech_config
+
+    def synthesize_speech(self, text):
+        result = self.speech_synthesizer.speak_text_async(text).get()
+        return result.audio_data
+
+class MinioUploader:
+    def __init__(self, endpoint, access_key, secret_key, secure=False):
+        self.minio_client = Minio(
+            endpoint,
+            access_key=access_key,
+            secret_key=secret_key,
+            secure=secure
+        )
+
+    def upload(self, bucket_name, object_name, file_path):
+        try:
+            # Upload file to MinIO
+            self.minio_client.fput_object(bucket_name, object_name, file_path)
+            print("File uploaded successfully.")
+            return f"http://192.168.50.178:9000/{bucket_name}/{object_name}"
+        except Exception as err:
+            print(f"Error: {err}")
+
+if __name__ == "__main__":
+    # Example usage
+    speech_service = SpeechService()
+    audio_data = speech_service.synthesize_speech("Hello, world!")
+
+    minio_uploader = MinioUploader(
+        endpoint="127.0.0.1:9000",
+        access_key="minio",
+        secret_key="miniosecret",
+        secure=False  # Change to False if not using SSL/TLS
+    )
+    uploaded_url = minio_uploader.upload(bucket_name="videos", object_name="example.mp3", file_path="example.mp3")
+    print("Uploaded URL:", uploaded_url)
