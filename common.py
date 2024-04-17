@@ -25,6 +25,10 @@ class SpeechService:
         )
         speech_config.speech_synthesis_voice_name = settings.SPEECH_CONFIG_VOICE
         speech_config.endpoint_id = settings.SPEECH_CONFIG_ENDPOINT
+        print(settings.SPEECH_CONFIG_SUB_ID)
+        print(settings.SPEECH_CONFIG_REGION)
+        print(settings.SPEECH_CONFIG_VOICE)
+        print(settings.SPEECH_CONFIG_ENDPOINT)
         # use low bitrate to reduce the size of the audio file
         speech_config.set_speech_synthesis_output_format(
             speechsdk.SpeechSynthesisOutputFormat.Audio24Khz160KBitRateMonoMp3
@@ -33,6 +37,16 @@ class SpeechService:
 
     def synthesize_speech(self, text):
         result = self.speech_synthesizer.speak_text_async(text).get()
+        if result.reason == speechsdk.ResultReason.Canceled:
+            cancellation_details = result.cancellation_details
+            reason_text = "Cancellation reason: {}".format(cancellation_details.reason)
+            print(f"reason_text: {reason_text}")
+            error_details = (
+                "Error details: {}".format(cancellation_details.error_details)
+                if cancellation_details.error_details
+                else "No error details available."
+            )
+            print(f"error_details: {error_details}")
         return result
 
 

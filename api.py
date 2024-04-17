@@ -102,17 +102,17 @@ async def generate_lip_synced(message):
         output_file = f"{settings.MEDIA_PATH}/{output_file_name}"
         with open(audio_file, "wb") as f:
             f.write(audio.audio_data)
-    print(audio.audio_duration.total_seconds())
+    print("audio.audio_duration", str(audio.audio_duration.total_seconds()))
     with tracer.start_as_current_span("process-tts-merge-video-audio"):
         sq_len = math.ceil(audio.audio_duration.total_seconds() / 0.5)
         sq_min = int(redis_client.get("index")) + int(0.5 * 2)
         sq_max = sq_min + sq_len
-        print(sq_len)
+        print("sq_len", str(sq_len))
         selected_edited = sorted(videos_indexes[sq_min:sq_max])
         selected_files = [
             settings.EDITED_PATH.format(str(i).zfill(3)) for i in selected_edited
         ]
-        print(selected_files)
+        print("selected_files", str(selected_files))
         merge_ts_files_with_audio(selected_files, audio_file, output_file)
     with tracer.start_as_current_span("process-upload-to-s3"):
         uploaded_url = minio_uploader.upload(

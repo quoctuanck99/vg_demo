@@ -21,6 +21,11 @@ RUN apt-get update && apt-get install gcc -y && apt-get install ffmpeg -y && apt
     && make install_sw install_ssldirs \
     && ldconfig -v
 
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+ENV SSL_CERT_DIR /etc/ssl/certs
+ENV LD_LIBRARY_PATH /usr/local/lib:$LD_LIBRARY_PATH
+
 
 FROM dependencies as pip_packages
 COPY ./requirements.txt ./
