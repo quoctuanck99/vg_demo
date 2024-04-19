@@ -96,7 +96,6 @@ def merge_ts_files_with_audio(input_files, audio, output_file):
     ]
     subprocess.run(mix_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     subprocess.run(["rm", "temp.mp4"])
-    subprocess.run(["rm", audio])
     return output_file
 
 
