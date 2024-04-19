@@ -94,12 +94,13 @@ async def get_data(key: str):
 
 
 async def generate_lip_synced(message):
+    audio_file_name = f"{uuid.uuid4()}.mp3"
+    output_file_name = f"{uuid.uuid4()}.mp4"
+    audio_file = f"{settings.MEDIA_PATH}/{audio_file_name}"
+    output_file = f"{settings.MEDIA_PATH}/{output_file_name}"
     with tracer.start_as_current_span("process-tts"):
         audio = speech_service.synthesize_speech(message)
     with tracer.start_as_current_span("process-tts-write-to-disk"):
-        audio_file = f"{settings.MEDIA_PATH}/{uuid.uuid4()}.mp3"
-        output_file_name = f"{uuid.uuid4()}.mp4"
-        output_file = f"{settings.MEDIA_PATH}/{output_file_name}"
         with open(audio_file, "wb") as f:
             f.write(audio.audio_data)
     print("audio.audio_duration", str(audio.audio_duration.total_seconds()))
@@ -116,15 +117,24 @@ async def generate_lip_synced(message):
         ]
         print("selected_files", str(selected_files))
         merge_ts_files_with_audio(selected_files, audio_file, output_file)
+    result = {"bound": sq_max, "text": message}
     with tracer.start_as_current_span("process-upload-to-s3"):
         uploaded_url = minio_uploader.upload(
             bucket_name="videos",
             object_name=f"output/{output_file_name}",
             file_path=output_file,
         )
-        print("Uploaded URL:", uploaded_url)
-    result = {"bound": sq_max, "video": uploaded_url, "text": message}
+        result["video"] = uploaded_url
+        print("Uploaded video URL:", uploaded_url)
+        uploaded_url = minio_uploader.upload(
+            bucket_name="videos",
+            object_name=f"output/{audio_file_name}",
+            file_path=audio_file,
+        )
+        result["audio"] = uploaded_url
+        print("Uploaded audio URL:", uploaded_url)
     subprocess.run(["rm", output_file])
+    subprocess.run(["rm", audio_file])
     return result
 
 
