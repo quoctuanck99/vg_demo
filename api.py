@@ -116,7 +116,7 @@ async def generate_lip_synced(message):
             settings.EDITED_PATH.format(str(i).zfill(3)) for i in selected_edited
         ]
         print("selected_files", str(selected_files))
-        merge_ts_files_with_audio(selected_files, audio_file, output_file)
+        merge_ts_files_with_audio(selected_files, audio_file, output_file, False)
     result = {"bound": sq_max, "text": message}
     with tracer.start_as_current_span("process-upload-to-s3"):
         uploaded_url = minio_uploader.upload(

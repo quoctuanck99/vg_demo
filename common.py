@@ -66,7 +66,8 @@ class MinioUploader:
             print(f"Error: {err}")
 
 
-def merge_ts_files_with_audio(input_files, audio, output_file):
+def merge_ts_files_with_audio(input_files, audio, output_file, audio_mixed=False):
+    tmp_file = output_file if not audio_mixed else "temp.mp4"
     concat_cmd = [
         "ffmpeg",
         "-i",
@@ -75,13 +76,15 @@ def merge_ts_files_with_audio(input_files, audio, output_file):
         "copy",
         "-bsf:a",
         "aac_adtstoasc",
-        "temp.mp4",
+        tmp_file,
     ]
     subprocess.run(concat_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    if not audio_mixed:
+        return tmp_file
     mix_cmd = [
         "ffmpeg",
         "-i",
-        "temp.mp4",
+        tmp_file,
         "-i",
         audio,
         "-c:v",
@@ -95,7 +98,8 @@ def merge_ts_files_with_audio(input_files, audio, output_file):
         output_file,
     ]
     subprocess.run(mix_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    subprocess.run(["rm", "temp.mp4"])
+    subprocess.run(["rm", tmp_file])
+    
     return output_file
 
 
