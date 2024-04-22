@@ -50,7 +50,7 @@ async def send_llm_request(text):
         "user_id": 1079,
         "group_id": 5567,
         "chat_message_id": 126616,
-        "language_code": "en",
+        "language_code": "jp",
         "time_zone": "America/Los_Angeles",
         "is_streaming": True,
         "avatar_code": "reimi",
