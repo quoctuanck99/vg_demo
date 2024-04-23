@@ -1,3 +1,5 @@
+import io
+
 from dotenv import load_dotenv
 from livekit import api as likvekit_api
 
@@ -11,6 +13,7 @@ import subprocess
 import time
 import uuid
 from typing import Annotated
+from pydub import AudioSegment
 
 from fastapi import FastAPI, HTTPException, Response, Form, Request
 import redis
@@ -95,15 +98,15 @@ async def get_data(key: str):
 
 
 async def generate_lip_synced(message):
-    audio_file_name = f"{uuid.uuid4()}.mp3"
+    audio_file_name = f"{uuid.uuid4()}.wav"
     output_file_name = f"{uuid.uuid4()}.mp4"
     audio_file = f"{settings.MEDIA_PATH}/{audio_file_name}"
     output_file = f"{settings.MEDIA_PATH}/{output_file_name}"
     with tracer.start_as_current_span("process-tts"):
         audio = speech_service.synthesize_speech(message)
-    with tracer.start_as_current_span("process-tts-write-to-disk"):
-        with open(audio_file, "wb") as f:
-            f.write(audio.audio_data)
+    sound = AudioSegment.from_mp3(io.BytesIO(audio.audio_data))
+    sound.export(audio_file, format="wav")
+    print(audio_file)
     print("audio.audio_duration", str(audio.audio_duration.total_seconds()))
     # with tracer.start_as_current_span("process-tts-merge-video-audio"):
     #     sq_len = math.ceil(audio.audio_duration.total_seconds() / 0.5)
@@ -118,7 +121,11 @@ async def generate_lip_synced(message):
     #     ]
     #     print("selected_files", str(selected_files))
     #     merge_ts_files_with_audio(selected_files, audio_file, output_file, False)
-    result = {"total_seconds": audio.audio_duration.total_seconds(), "text": message}
+    result = {
+        "total_seconds": audio.audio_duration.total_seconds(),
+        "text": message,
+        "audio_file": audio_file,
+    }
     # with tracer.start_as_current_span("process-upload-to-s3"):
     #     uploaded_url = minio_uploader.upload(
     #         bucket_name="videos",

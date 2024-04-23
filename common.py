@@ -31,6 +31,7 @@ class SpeechService:
         print(settings.SPEECH_CONFIG_REGION)
         print(settings.SPEECH_CONFIG_VOICE)
         print(settings.SPEECH_CONFIG_ENDPOINT)
+
         # use low bitrate to reduce the size of the audio file
         speech_config.set_speech_synthesis_output_format(
             speechsdk.SpeechSynthesisOutputFormat.Audio24Khz160KBitRateMonoMp3
@@ -101,7 +102,7 @@ def merge_ts_files_with_audio(input_files, audio, output_file, audio_mixed=False
     ]
     subprocess.run(mix_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     subprocess.run(["rm", tmp_file])
-    
+
     return output_file
 
 
