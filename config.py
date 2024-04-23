@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     MEDIA_PATH: str
     EDITED_PATH: str
 
+    LIVEKIT_API_SECRET: str
+    LIVEKIT_API_KEY: str
+    LIVEKIT_WSS_URL: str
+
 
 settings = Settings()
 print(settings.OTLP_ENDPOINT)

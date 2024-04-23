@@ -1,4 +1,5 @@
 from dotenv import load_dotenv
+from livekit import api as likvekit_api
 
 load_dotenv()
 
@@ -136,6 +137,22 @@ async def generate_lip_synced(message):
     # subprocess.run(["rm", output_file])
     # subprocess.run(["rm", audio_file])
     return result
+
+
+@app.post("/livekit-token")
+async def talk_with_llm():
+    token = (
+        likvekit_api.AccessToken(settings.LIVEKIT_API_KEY, settings.LIVEKIT_API_SECRET)
+        .with_identity(str(uuid.uuid4()))
+        .with_name("tuankq")
+        .with_grants(
+            likvekit_api.VideoGrants(
+                room_join=True,
+                room="test",
+            )
+        )
+    )
+    return {"wss": settings.LIVEKIT_WSS_URL, "token": token.to_jwt()}
 
 
 @app.post("/talk")
