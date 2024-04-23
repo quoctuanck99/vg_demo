@@ -12,3 +12,4 @@ azure-cognitiveservices-speech
 minio
 python-dotenv
 pydantic-settings
+livekit-api
