@@ -7,7 +7,6 @@ services:
       - "6379:6379"
     networks:
       - mynetwork
-
   minio:
     image: bitnami/minio:latest
     container_name: minio
@@ -29,19 +28,19 @@ services:
       - "9411:9411"
     networks:
       - mynetwork
-  api:
-    build: .
-    command: /opt/app/start.sh
-    ports:
-      - "8080:80"
-    depends_on:
-      - redis
-      - minio
-      - jaeger
-    volumes:
-      - .docker.env:/opt/app/.docker.env
-    env_file:
-      - .docker.env
+#  api:
+#    build: .
+#    command: /opt/app/start.sh
+#    ports:
+#      - "8080:80"
+#    depends_on:
+#      - redis
+#      - minio
+#      - jaeger
+#    volumes:
+#      - .docker.env:/opt/app/.docker.env
+#    env_file:
+#      - .docker.env
 networks:
   mynetwork:
     driver: bridge

@@ -25,6 +25,8 @@ class SpeechService:
         )
         speech_config.speech_synthesis_voice_name = settings.SPEECH_CONFIG_VOICE
         speech_config.endpoint_id = settings.SPEECH_CONFIG_ENDPOINT
+        speech_config.set_property_by_name("OPENSSL_DISABLE_CRL_CHECK", "true")
+
         print(settings.SPEECH_CONFIG_SUB_ID)
         print(settings.SPEECH_CONFIG_REGION)
         print(settings.SPEECH_CONFIG_VOICE)

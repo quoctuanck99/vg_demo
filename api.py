@@ -1,8 +1,9 @@
 from dotenv import load_dotenv
 
+load_dotenv()
+
 from config import settings
 
-load_dotenv()
 import json
 import math
 import subprocess
@@ -10,7 +11,6 @@ import time
 import uuid
 from typing import Annotated
 
-load_dotenv()
 from fastapi import FastAPI, HTTPException, Response, Form, Request
 import redis
 import httpx
@@ -104,37 +104,37 @@ async def generate_lip_synced(message):
         with open(audio_file, "wb") as f:
             f.write(audio.audio_data)
     print("audio.audio_duration", str(audio.audio_duration.total_seconds()))
-    with tracer.start_as_current_span("process-tts-merge-video-audio"):
-        sq_len = math.ceil(audio.audio_duration.total_seconds() / 0.5)
-        sq_min = int(
-            redis_client.get("index") if redis_client.get("index") else 0
-        ) + int(0.5 * 2)
-        sq_max = sq_min + sq_len
-        print("sq_len", str(sq_len))
-        selected_edited = sorted(videos_indexes[sq_min:sq_max])
-        selected_files = [
-            settings.EDITED_PATH.format(str(i).zfill(3)) for i in selected_edited
-        ]
-        print("selected_files", str(selected_files))
-        merge_ts_files_with_audio(selected_files, audio_file, output_file, False)
-    result = {"bound": sq_max, "text": message}
-    with tracer.start_as_current_span("process-upload-to-s3"):
-        uploaded_url = minio_uploader.upload(
-            bucket_name="videos",
-            object_name=f"output/{output_file_name}",
-            file_path=output_file,
-        )
-        result["video"] = uploaded_url
-        print("Uploaded video URL:", uploaded_url)
-        uploaded_url = minio_uploader.upload(
-            bucket_name="videos",
-            object_name=f"output/{audio_file_name}",
-            file_path=audio_file,
-        )
-        result["audio"] = uploaded_url
-        print("Uploaded audio URL:", uploaded_url)
-    subprocess.run(["rm", output_file])
-    subprocess.run(["rm", audio_file])
+    # with tracer.start_as_current_span("process-tts-merge-video-audio"):
+    #     sq_len = math.ceil(audio.audio_duration.total_seconds() / 0.5)
+    #     sq_min = int(
+    #         redis_client.get("index") if redis_client.get("index") else 0
+    #     ) + int(0.5 * 2)
+    #     sq_max = sq_min + sq_len
+    #     print("sq_len", str(sq_len))
+    #     selected_edited = sorted(videos_indexes[sq_min:sq_max])
+    #     selected_files = [
+    #         settings.EDITED_PATH.format(str(i).zfill(3)) for i in selected_edited
+    #     ]
+    #     print("selected_files", str(selected_files))
+    #     merge_ts_files_with_audio(selected_files, audio_file, output_file, False)
+    result = {"total_seconds": audio.audio_duration.total_seconds(), "text": message}
+    # with tracer.start_as_current_span("process-upload-to-s3"):
+    #     uploaded_url = minio_uploader.upload(
+    #         bucket_name="videos",
+    #         object_name=f"output/{output_file_name}",
+    #         file_path=output_file,
+    #     )
+    #     result["video"] = uploaded_url
+    #     # print("Uploaded video URL:", uploaded_url)
+    #     uploaded_url = minio_uploader.upload(
+    #         bucket_name="videos",
+    #         object_name=f"output/{audio_file_name}",
+    #         file_path=audio_file,
+    #     )
+    #     result["audio"] = uploaded_url
+    #     print("Uploaded audio URL:", uploaded_url)
+    # subprocess.run(["rm", output_file])
+    # subprocess.run(["rm", audio_file])
     return result
 
 
