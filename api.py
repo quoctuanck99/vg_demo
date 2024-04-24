@@ -150,6 +150,7 @@ async def generate_lip_synced(message):
 async def talk_with_llm(room_id: Annotated[str, Form()]):
     token = (
         likvekit_api.AccessToken(settings.LIVEKIT_API_KEY, settings.LIVEKIT_API_SECRET)
+        .with_identity(room_id)
         .with_grants(
             likvekit_api.VideoGrants(
                 room_join=True,
