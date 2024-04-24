@@ -147,15 +147,13 @@ async def generate_lip_synced(message):
 
 
 @app.post("/livekit-token")
-async def talk_with_llm():
+async def talk_with_llm(room_id: Annotated[str, Form()]):
     token = (
         likvekit_api.AccessToken(settings.LIVEKIT_API_KEY, settings.LIVEKIT_API_SECRET)
-        .with_identity(str(uuid.uuid4()))
-        .with_name("tuankq")
         .with_grants(
             likvekit_api.VideoGrants(
                 room_join=True,
-                room="test",
+                room=room_id,
             )
         )
     )
@@ -163,19 +161,18 @@ async def talk_with_llm():
 
 
 @app.post("/talk")
-async def talk_from_text(message: Annotated[str, Form()]):
+async def talk_from_text(message: Annotated[str, Form()], room_id: Annotated[str, Form()]):
     with tracer.start_as_current_span("/talk"):
-        channel = "loki"
         with tracer.start_as_current_span("process-lip-synced"):
             result = await generate_lip_synced(message)
         # Publish messages to the channel
         message = json.dumps(result)
-        redis_client.publish(channel, message)
+        redis_client.publish(room_id, message)
         return result
 
 
 @app.post("/chat")
-async def talk_with_llm(message: Annotated[str, Form()]):
+async def talk_with_llm(message: Annotated[str, Form()], room_id: Annotated[str, Form()]):
     with tracer.start_as_current_span("/chat"):
         channel = "loki"
         with tracer.start_as_current_span("process-llm"):
@@ -184,7 +181,7 @@ async def talk_with_llm(message: Annotated[str, Form()]):
             result = await generate_lip_synced(answer)
         # Publish messages to the channel
         message = json.dumps(result)
-        redis_client.publish(channel, message)
+        redis_client.publish(room_id, message)
         return result
 
 
