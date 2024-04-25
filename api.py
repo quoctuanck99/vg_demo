@@ -2,6 +2,7 @@ import io
 
 from dotenv import load_dotenv
 from livekit import api as likvekit_api
+from starlette.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
@@ -184,6 +185,22 @@ async def talk_with_llm(message: Annotated[str, Form()], room_id: Annotated[str,
         message = json.dumps(result)
         redis_client.publish(room_id, message)
         return result
+
+origins = [
+    "http://localhost.tiangolo.com",
+    "https://localhost.tiangolo.com",
+    "http://localhost",
+    "http://localhost:8080",
+    "http://localhost:8443",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 if __name__ == "__main__":
