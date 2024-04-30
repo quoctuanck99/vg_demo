@@ -1,16 +1,16 @@
 import io
 
+import livekit
+from azure.cognitiveservices.speech import AudioStreamWaveFormat
+from azure.cognitiveservices.speech.audio import AudioStreamFormat
 from dotenv import load_dotenv
-from livekit import api as likvekit_api
 from starlette.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
 from config import settings
-
+import azure.cognitiveservices.speech as speechsdk
 import json
-import math
-import subprocess
 import time
 import uuid
 from typing import Annotated
@@ -25,7 +25,7 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
-from common import SpeechService, merge_ts_files_with_audio, MinioUploader
+from common import SpeechService, MinioUploader, AudioStreamCallback
 
 app = FastAPI()
 redis_client = redis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, db=0)
@@ -98,15 +98,20 @@ async def get_data(key: str):
         raise HTTPException(status_code=404, detail="Data not found")
 
 
-async def generate_lip_synced(message):
+async def generate_lip_synced(message, channel="abc"):
     audio_file_name = f"{uuid.uuid4()}.wav"
     output_file_name = f"{uuid.uuid4()}.mp4"
     audio_file = f"{settings.MEDIA_PATH}/{audio_file_name}"
     output_file = f"{settings.MEDIA_PATH}/{output_file_name}"
     with tracer.start_as_current_span("process-tts"):
+        audio_stream = speechsdk.audio.PushAudioOutputStream(
+            AudioStreamCallback(channel)
+        )
+        audio_config = speechsdk.audio.AudioOutputConfig(stream=audio_stream)
+        speech_service.init_synthesizer(audio_config)
         audio = speech_service.synthesize_speech(message)
-    sound = AudioSegment.from_mp3(io.BytesIO(audio.audio_data))
-    sound.export(audio_file, format="wav")
+    # sound = AudioSegment.from_mp3(io.BytesIO(audio.audio_data))
+    # sound.export(audio_file, format="wav")
     print(audio_file)
     print("audio.audio_duration", str(audio.audio_duration.total_seconds()))
     # with tracer.start_as_current_span("process-tts-merge-video-audio"):
@@ -149,32 +154,36 @@ async def generate_lip_synced(message):
 
 @app.post("/livekit-token")
 async def talk_with_llm(room_id: Annotated[str, Form()]):
-    token = (
-        likvekit_api.AccessToken(settings.LIVEKIT_API_KEY, settings.LIVEKIT_API_SECRET)
-        .with_identity(room_id)
-        .with_grants(
-            likvekit_api.VideoGrants(
-                room_join=True,
-                room=room_id,
-            )
-        )
+    token = livekit.AccessToken(
+        settings.LIVEKIT_API_KEY,
+        settings.LIVEKIT_API_SECRET,
+        identity=room_id,
+        grant=livekit.VideoGrant(
+            room_join=True,
+            room=room_id,
+        ),
     )
+
     return {"wss": settings.LIVEKIT_WSS_URL, "token": token.to_jwt()}
 
 
 @app.post("/talk")
-async def talk_from_text(message: Annotated[str, Form()], room_id: Annotated[str, Form()]):
+async def talk_from_text(
+    message: Annotated[str, Form()], room_id: Annotated[str, Form()]
+):
     with tracer.start_as_current_span("/talk"):
         with tracer.start_as_current_span("process-lip-synced"):
-            result = await generate_lip_synced(message)
+            result = await generate_lip_synced(message, room_id)
         # Publish messages to the channel
         message = json.dumps(result)
-        redis_client.publish(room_id, message)
+        # redis_client.publish(room_id, message)
         return result
 
 
 @app.post("/chat")
-async def talk_with_llm(message: Annotated[str, Form()], room_id: Annotated[str, Form()]):
+async def talk_with_llm(
+    message: Annotated[str, Form()], room_id: Annotated[str, Form()]
+):
     with tracer.start_as_current_span("/chat"):
         channel = "loki"
         with tracer.start_as_current_span("process-llm"):
@@ -185,6 +194,7 @@ async def talk_with_llm(message: Annotated[str, Form()], room_id: Annotated[str,
         message = json.dumps(result)
         redis_client.publish(room_id, message)
         return result
+
 
 origins = [
     "http://localhost.tiangolo.com",
@@ -201,7 +211,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 if __name__ == "__main__":
     import uvicorn

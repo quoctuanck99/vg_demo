@@ -1,6 +1,10 @@
+import io
+import logging
 import subprocess
+import uuid
 
 import azure.cognitiveservices.speech as speechsdk
+import redis
 from dotenv import load_dotenv
 from minio import Minio
 from singleton_decorator import singleton
@@ -8,6 +12,30 @@ from singleton_decorator import singleton
 from config import settings
 
 load_dotenv()
+redis_client = redis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, db=0)
+
+
+class AudioStreamCallback(speechsdk.audio.PushAudioOutputStreamCallback):
+    def __init__(self, channel: str = ""):
+        super().__init__()
+        self.channel = channel
+        self._buffer = bytearray()
+
+    def write(self, data: memoryview) -> int:
+        print(
+            f"AudioStreamCallback:write: {len(data.tobytes())} {type(data.tobytes())}"
+        )
+        audio_bytes = data.tobytes()
+        self._buffer.extend(audio_bytes)
+        redis_client.publish(self.channel, audio_bytes)
+
+        return data.nbytes
+
+    def close(self):
+        pass
+
+    def get_buffer(self):
+        return bytes(self._buffer)
 
 
 @singleton
@@ -18,6 +46,14 @@ class SpeechService:
             speech_config=self.speech_config
         )
 
+    def init_synthesizer(
+        self,
+        audio_config: speechsdk.audio.AudioOutputConfig,
+    ):
+        self.speech_synthesizer = speechsdk.SpeechSynthesizer(
+            speech_config=self.speech_config, audio_config=audio_config
+        )
+
     def _get_speech_config(self):
         speech_config = speechsdk.SpeechConfig(
             subscription=settings.SPEECH_CONFIG_SUB_ID,
@@ -26,16 +62,11 @@ class SpeechService:
         speech_config.speech_synthesis_voice_name = settings.SPEECH_CONFIG_VOICE
         speech_config.endpoint_id = settings.SPEECH_CONFIG_ENDPOINT
         speech_config.set_property_by_name("OPENSSL_DISABLE_CRL_CHECK", "true")
-
-        print(settings.SPEECH_CONFIG_SUB_ID)
-        print(settings.SPEECH_CONFIG_REGION)
-        print(settings.SPEECH_CONFIG_VOICE)
-        print(settings.SPEECH_CONFIG_ENDPOINT)
-
         # use low bitrate to reduce the size of the audio file
         speech_config.set_speech_synthesis_output_format(
             speechsdk.SpeechSynthesisOutputFormat.Audio24Khz160KBitRateMonoMp3
         )
+
         return speech_config
 
     def synthesize_speech(self, text):
