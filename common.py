@@ -64,7 +64,7 @@ class SpeechService:
         speech_config.set_property_by_name("OPENSSL_DISABLE_CRL_CHECK", "true")
         # use low bitrate to reduce the size of the audio file
         speech_config.set_speech_synthesis_output_format(
-            speechsdk.SpeechSynthesisOutputFormat.Audio24Khz160KBitRateMonoMp3
+            speechsdk.SpeechSynthesisOutputFormat.Raw24Khz16BitMonoPcm
         )
 
         return speech_config

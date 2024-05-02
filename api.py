@@ -1,8 +1,6 @@
 import io
 
 import livekit
-from azure.cognitiveservices.speech import AudioStreamWaveFormat
-from azure.cognitiveservices.speech.audio import AudioStreamFormat
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 
@@ -112,7 +110,6 @@ async def generate_lip_synced(message, channel="abc"):
         audio = speech_service.synthesize_speech(message)
     # sound = AudioSegment.from_mp3(io.BytesIO(audio.audio_data))
     # sound.export(audio_file, format="wav")
-    print(audio_file)
     print("audio.audio_duration", str(audio.audio_duration.total_seconds()))
     # with tracer.start_as_current_span("process-tts-merge-video-audio"):
     #     sq_len = math.ceil(audio.audio_duration.total_seconds() / 0.5)
@@ -130,7 +127,6 @@ async def generate_lip_synced(message, channel="abc"):
     result = {
         "total_seconds": audio.audio_duration.total_seconds(),
         "text": message,
-        "audio_file": audio_file,
     }
     # with tracer.start_as_current_span("process-upload-to-s3"):
     #     uploaded_url = minio_uploader.upload(
@@ -176,7 +172,8 @@ async def talk_from_text(
             result = await generate_lip_synced(message, room_id)
         # Publish messages to the channel
         message = json.dumps(result)
-        # redis_client.publish(room_id, message)
+        print(f"publish message {message} to lip:synced:{room_id}")
+        redis_client.publish(f"lip:synced:{room_id}", message)
         return result
 
 
