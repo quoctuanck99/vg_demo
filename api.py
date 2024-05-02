@@ -171,9 +171,9 @@ async def talk_from_text(
         with tracer.start_as_current_span("process-lip-synced"):
             result = await generate_lip_synced(message, room_id)
         # Publish messages to the channel
-        message = json.dumps(result)
-        print(f"publish message {message} to lip:synced:{room_id}")
-        redis_client.publish(f"lip:synced:{room_id}", message)
+        # message = json.dumps(result)
+        # print(f"publish message {message} to lip:synced:{room_id}")
+        # redis_client.publish(f"lip:synced:{room_id}", message)
         return result
 
 
@@ -189,7 +189,9 @@ async def talk_with_llm(
             result = await generate_lip_synced(answer)
         # Publish messages to the channel
         message = json.dumps(result)
-        redis_client.publish(room_id, message)
+        redis_client.publish(
+            settings.LIVEKIT_AGENTS_AUDIO_CHANNEL.format(room_id), message
+        )
         return result
 
 

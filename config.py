@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     LIVEKIT_API_SECRET: str
     LIVEKIT_API_KEY: str
     LIVEKIT_WSS_URL: str
+    LIVEKIT_AGENTS_AUDIO_CHANNEL: str
 
 
 settings = Settings()
